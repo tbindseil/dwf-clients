@@ -10,12 +10,7 @@ from dwfclients.auth.models import User
 
 from tests.auth import app
 
-class ApisTest(TestCase):
-    user = User(
-        username='user@test.com',
-        admin=False
-    )
-
+class ConfigureAuthenticatedBlueprintsTest(TestCase):
     def test_configure_authenticated_blueprints_configures_all_always(self):
         mock_blueprint1 = MagicMock()
         mock_blueprint2 = MagicMock()
@@ -27,37 +22,51 @@ class ApisTest(TestCase):
         mock_blueprint1.before_request.assert_called_once()
         mock_blueprint2.before_request.assert_called_once()
 
-    @patch("dwfclients.auth.apis.authenticate")
-    def test_check_bearer_token_returns_none_on_valid_token(self, mock_authenticate):
+class CheckBearerTokenTest(TestCase):
+    authenticate_patcher = None
+    mock_authenticate = None
+    request_patcher = None
+    mock_request = None
+
+    user = User(
+        username='user@test.com',
+        admin=False
+    )
+
+    def setUp(self):
+        self.authenticate_patcher = patch('dwfclients.auth.apis.authenticate')
+        self.mock_authenticate = self.authenticate_patcher.start()
+
+        # for some reason this had to be patched within the app.test_request_context
         with app.test_request_context():
-            # for some reason this had to be patched within the app.test_request_context
-            request_patcher = patch('dwfclients.auth.apis.request')
-            mock_request = request_patcher.start()
-            request_patcher = patch('dwfclients.auth.apis.request')
+            self.request_patcher = patch('dwfclients.auth.apis.request')
+            self.mock_request = self.request_patcher.start()
 
-            mock_request.headers = MagicMock()
-            mock_request.headers.get = MagicMock()
-            mock_request.headers.get.return_value = "token token"
+    def tearDown(self):
+        self.authenticate_patcher.stop()
+        self.request_patcher.stop()
 
-            mock_authenticate.return_value = self.user
+    def make_mock_request(self):
+        self.mock_request.headers = MagicMock()
+        self.mock_request.headers.get = MagicMock()
+        self.mock_request.headers.get.return_value = "token token"
+
+    def test_check_bearer_token_returns_none_on_valid_token(self):
+        with app.test_request_context():
+            self.make_mock_request()
+            self.mock_authenticate.return_value = self.user
 
             outcome = check_bearer_token()
             assert(outcome is None)
 
-    @patch("dwfclients.auth.apis.authenticate")
-    def test_check_bearer_token_sets_user_on_valid_token(self, mock_authenticate):
+    def test_check_bearer_token_sets_user_on_valid_token(self):
         with app.test_request_context():
-            # for some reason this had to be patched within the app.test_request_context
-            request_patcher = patch('dwfclients.auth.apis.request')
-            mock_request = request_patcher.start()
             g_patcher = patch("dwfclients.auth.apis.g")
             mock_g = g_patcher.start()
 
-            mock_request.headers = MagicMock()
-            mock_request.headers.get = MagicMock()
-            mock_request.headers.get.return_value = "token token"
+            self.make_mock_request()
 
-            mock_authenticate.return_value = self.user
+            self.mock_authenticate.return_value = self.user
 
             outcome = check_bearer_token()
 
@@ -65,19 +74,11 @@ class ApisTest(TestCase):
 
     @patch("dwfclients.auth.apis.jsonify")
     @patch("dwfclients.auth.apis.make_response")
-    @patch("dwfclients.auth.apis.authenticate")
-    def test_rebuild(self, mock_authenticate, mock_make_response, mock_jsonify):
+    def test_rebuild(self, mock_make_response, mock_jsonify):
         with app.test_request_context():
-            # for some reason this had to be patched within the app.test_request_context
-            request_patcher = patch('dwfclients.auth.apis.request')
-            mock_request = request_patcher.start()
+            self.make_mock_request()
 
-            mock_request.headers = MagicMock()
-            mock_request.headers.get = MagicMock()
-            mock_request.headers.get.return_value = "token token"
-
-            mock_authenticate.return_value = self.user
-            mock_authenticate.side_effect = AuthException
+            self.mock_authenticate.side_effect = AuthException
 
             expected_response_object = {
                 'status': 'fail',
@@ -89,10 +90,3 @@ class ApisTest(TestCase):
             assert(status == 401)
 
             mock_make_response.assert_called_with(expected_response_object)
-
-
-
-    # TODO next
-    # def tearDown(self):
-        # self.request_patcher.stop()
-
