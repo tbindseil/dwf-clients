@@ -31,20 +31,13 @@ class ApisTest(TestCase):
         mock_blueprint1.before_request.assert_called_once()
         mock_blueprint2.before_request.assert_called_once()
 
-    def test_rebuild(self):
-        with app.test_request_context():
-            print("DO STUFFF**************");
-            outcome = None
-            assert(outcome is None)
-
     @patch("dwfclients.auth.apis.authenticate")
-    @patch("dwfclients.auth.apis.request")
-#    @patch("dwfclients.auth.apis.make_response")
-    def test_check_bearer_token_returns_none_on_valid_token(self, mock_authenticate, mock_request):
-        #with app.test_request_context():
-        with app.app_context():
-        #with app.test_request_context():
-            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ummmm")
+    # @patch("dwfclients.auth.apis.request")
+    def test_rebuild(self, mock_authenticate): #, mock_request):
+        with app.test_request_context():
+            self.patcher = patch('dwfclients.auth.apis.request')
+            mock_request = self.patcher.start()
+
             mock_request.headers = MagicMock()
             mock_request.headers.get = MagicMock()
             mock_request.headers.get.return_value = "token token"
@@ -54,6 +47,26 @@ class ApisTest(TestCase):
             outcome = check_bearer_token()
             assert(outcome is None)
 
+
+
+#    @patch("dwfclients.auth.apis.authenticate")
+#    @patch("dwfclients.auth.apis.request")
+#    @patch("dwfclients.auth.apis.g")
+#    @patch("dwfclients.auth.apis.make_response")
+#    def test_check_bearer_token_returns_none_on_valid_token(self, mock_authenticate, mock_request, mock_g, mock_make_response):
+#        #with app.test_request_context():
+#        with app.app_context():
+#        #with app.test_request_context():
+#            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ummmm")
+#            mock_request.headers = MagicMock()
+#            mock_request.headers.get = MagicMock()
+#            mock_request.headers.get.return_value = "token token"
+#
+#            mock_authenticate.return_value = self.user
+#
+#            outcome = check_bearer_token()
+#            assert(outcome is None)
+#
 #    def test_check_bearer_token_sets_user_on_valid_token(self):
 #        return false
 #
