@@ -7,8 +7,8 @@ setup(
     description='Clients for microservices in dwf architecture',
     author='TJ Bindseil',
     license='MIT',
-    install_requires=['flask'],
-    setup_requires=['flask', 'mock', 'pytest-runner'],
-    tests_require=['flask', 'mock', 'pytest==4.4.1'],
+    install_requires=['flask', 'requests'],
+    setup_requires=['flask', 'requests', 'mock', 'pytest-runner'],
+    tests_require=['flask', 'requests', 'mock', 'pytest==4.4.1'],
     test_suite='tests',
 )

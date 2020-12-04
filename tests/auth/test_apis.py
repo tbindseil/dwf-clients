@@ -5,7 +5,7 @@ from mock import MagicMock, patch
 import json
 from flask import jsonify
 
-from dwfclients.auth.apis import AuthException, check_bearer_token, configure_authenticated_blueprints
+from dwfclients.auth.apis import AuthException, authenticate, check_bearer_token, configure_authenticated_blueprints
 from dwfclients.auth.models import User
 
 from tests.auth import app
@@ -90,3 +90,56 @@ class CheckBearerTokenTest(TestCase):
             assert(status == 401)
 
             mock_make_response.assert_called_with(expected_response_object)
+
+
+class AuthenticateTests(TestCase):
+    @patch("dwfclients.auth.apis.requests.get")
+    def test_authenticate_calls_get_user_api(self, mock_post):
+        token = "token"
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        def mock_post_side_effect(url, headers):
+            assert(url == 'https://localhost:6901/auth/user')
+            assert(headers['Authorization'] == ('Bearer ' + token))
+            return mock_response
+        mock_post.side_effect = mock_post_side_effect
+
+        user = authenticate(token)
+        mock_post.assert_called_once()
+
+    def test_authenticate_throws_AuthException_when_no_token(self):
+        with self.assertRaises(AuthException):
+            token = ""
+            authenticate(token)
+
+        with self.assertRaises(AuthException):
+            token = None
+            authenticate(token)
+
+    @patch("dwfclients.auth.apis.requests.get")
+    def test_authenticate_throws_AuthException_when_invalid_token(self, mock_post):
+        with self.assertRaises(AuthException):
+            token = "token"
+
+            mock_response = MagicMock()
+            mock_response.status_code = 401
+            mock_post.return_value = mock_response
+
+            authenticate(token)
+
+
+    @patch("dwfclients.auth.apis.requests.get")
+    def test_authenticate_returns_user_on_valid_token(self, mock_post):
+        token = "token"
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json = MagicMock()
+        mock_response.json.username = "username"
+        mock_response.json.admin = "admin"
+        mock_post.return_value = mock_response
+
+        user = authenticate(token)
+        assert(user.username == "username")
+        assert(user.admin == "admin")

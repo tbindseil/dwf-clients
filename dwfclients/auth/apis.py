@@ -1,4 +1,8 @@
+import requests
+
 from flask import request, make_response, jsonify, g
+
+from dwfclients.auth.models import User
 
 
 class AuthException(BaseException):
@@ -6,8 +10,19 @@ class AuthException(BaseException):
 
 
 def authenticate(token):
-    # TODO
-    return False
+    if token is None or token == "":
+        raise AuthException("no token")
+
+    # send request to auth service
+    header = {'Authorization': 'Bearer ' + token}
+    url = 'https://localhost:6901/auth/user'
+    response = requests.get(url, headers=header)
+
+    if response.status_code != 200:
+        raise AuthException("error authenticating")
+
+    # parse response
+    return User(response.json.username, response.json.admin)
 
 
 def check_bearer_token():
