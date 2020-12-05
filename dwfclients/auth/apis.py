@@ -22,7 +22,8 @@ def authenticate(token):
         raise AuthException("error authenticating")
 
     # parse response
-    return User(response.json.username, response.json.admin)
+    as_json = response.json()
+    return User(as_json['data']['username'], as_json['data']['admin'])
 
 
 def check_bearer_token():

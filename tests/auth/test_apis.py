@@ -94,19 +94,19 @@ class CheckBearerTokenTest(TestCase):
 
 class AuthenticateTests(TestCase):
     @patch("dwfclients.auth.apis.requests.get")
-    def test_authenticate_calls_get_user_api(self, mock_post):
+    def test_authenticate_calls_get_user_api(self, mock_get):
         token = "token"
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        def mock_post_side_effect(url, headers):
+        def mock_get_side_effect(url, headers):
             assert(url == 'https://localhost:6901/auth/user')
             assert(headers['Authorization'] == ('Bearer ' + token))
             return mock_response
-        mock_post.side_effect = mock_post_side_effect
+        mock_get.side_effect = mock_get_side_effect
 
         user = authenticate(token)
-        mock_post.assert_called_once()
+        mock_get.assert_called_once()
 
     def test_authenticate_throws_AuthException_when_no_token(self):
         with self.assertRaises(AuthException):
@@ -118,27 +118,27 @@ class AuthenticateTests(TestCase):
             authenticate(token)
 
     @patch("dwfclients.auth.apis.requests.get")
-    def test_authenticate_throws_AuthException_when_invalid_token(self, mock_post):
+    def test_authenticate_throws_AuthException_when_invalid_token(self, mock_get):
         with self.assertRaises(AuthException):
             token = "token"
 
             mock_response = MagicMock()
             mock_response.status_code = 401
-            mock_post.return_value = mock_response
+            mock_get.return_value = mock_response
 
             authenticate(token)
 
 
     @patch("dwfclients.auth.apis.requests.get")
-    def test_authenticate_returns_user_on_valid_token(self, mock_post):
+    def test_authenticate_returns_user_on_valid_token(self, mock_get):
         token = "token"
 
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json = MagicMock()
-        mock_response.json.username = "username"
-        mock_response.json.admin = "admin"
-        mock_post.return_value = mock_response
+        response_data = {'data': {'username': 'username', 'admin': 'admin'}}
+        mock_response.json.return_value = response_data
+        mock_get.return_value = mock_response
 
         user = authenticate(token)
         assert(user.username == "username")
